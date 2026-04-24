@@ -1,0 +1,286 @@
+from statistics import mean
+
+from app.models.student import CourseResult, LearningActivity
+
+
+def _normalize_text_for_match(value: object) -> str:
+    import re
+    import unicodedata
+
+    text = str(value or "").lower()
+    text = unicodedata.normalize("NFD", text)
+    text = "".join(char for char in text if unicodedata.category(char) != "Mn")
+    text = text.replace("đ", "d")
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _format_semester_label(semester_value: str) -> str:
+    import re
+
+    text = str(semester_value or "").strip()
+    if not text:
+        return "N/A"
+
+    numbers = re.findall(r"\d+(?:\.\d+)?", text)
+    if len(numbers) >= 2:
+        try:
+            year = int(float(numbers[0]))
+            semester = int(float(numbers[1]))
+            return f"Kỳ {semester} - {year}"
+        except Exception:
+            return text
+
+    return text
+
+
+class AnalyticsService:
+    VALID_GRADES = {"A", "B", "C", "D", "F"}
+
+    @staticmethod
+    def _grade_subjects(subjects: list[dict]) -> list[dict]:
+        grade_subjects: list[dict] = []
+        for s in subjects:
+            grade = str(s.get("grade") or "").strip().upper()
+            if grade in {"A", "B", "C", "D", "F"}:
+                grade_subjects.append({"name": s.get("name"), "grade": grade})
+        return grade_subjects
+
+    # =========================
+    # CONVERT DATA
+    # =========================
+    @staticmethod
+    def to_subjects(course_results: list[CourseResult]) -> list[dict]:
+        subjects: list[dict] = []
+
+        for item in course_results:
+            score = None
+            credit = None
+
+            try:
+                if item.score is not None:
+                    score = float(item.score)
+            except Exception:
+                score = None
+
+            try:
+                if item.credits is not None:
+                    credit = int(item.credits)
+            except Exception:
+                credit = None
+
+            # Ưu tiên letter_grade, fallback sang grade để không mất dữ liệu điểm chữ.
+            grade = str(
+                getattr(item, "letter_grade", None)
+                or getattr(item, "grade", "")
+            ).strip().upper()
+
+            subjects.append(
+                {
+                    "name": item.course_name,
+                    "score": score,
+                    "credit": credit,
+                    "grade": grade,
+                    "semester": str(getattr(item, "semester", "") or ""),
+                }
+            )
+
+        return subjects
+
+    # =========================
+    # FILTER VALID SUBJECTS
+    # =========================
+    @staticmethod
+    def _valid_subjects(subjects: list[dict]) -> list[dict]:
+        valid: list[dict] = []
+
+        for sub in subjects:
+            name = str(sub.get("name") or "").strip()
+            score = sub.get("score")
+            credit = sub.get("credit")
+            grade = str(sub.get("grade") or "").upper()
+
+            if not name or score is None or credit is None:
+                continue
+
+            # Không tính các học phần đặc thù vào GPA/KPI.
+            normalized_name = _normalize_text_for_match(name)
+            if "thuc tap" in normalized_name or "khoa luan" in normalized_name:
+                continue
+
+            # ❌ không tính GPA
+            if grade in {"P", "X"}:
+                continue
+
+            if grade and grade not in AnalyticsService.VALID_GRADES:
+                continue
+
+            try:
+                score = float(score)
+                credit = int(credit)
+            except Exception:
+                continue
+
+            if credit <= 0:
+                continue
+
+            valid.append(
+                {
+                    "name": name,
+                    "score": score,
+                    "credit": credit,
+                    "grade": grade,
+                }
+            )
+
+        return valid
+
+    # =========================
+    # LIST COURSES
+    # =========================
+    @staticmethod
+    def list_failed_courses(subjects: list[dict]) -> list[str]:
+        return [
+            s["name"]
+            for s in subjects
+            if s.get("score") is not None
+            and s["score"] < 5
+            and str(s.get("grade") or "").upper() != "X"
+        ]
+
+    @staticmethod
+    def list_unfinished_courses(subjects: list[dict]) -> list[str]:
+        return [
+            s["name"]
+            for s in subjects
+            if str(s.get("grade") or "").upper() == "X"
+        ]
+
+    # =========================
+    # CALCULATION
+    # =========================
+    @staticmethod
+    def calculate_gpa(subjects: list[dict]) -> float:
+        valid = AnalyticsService._valid_subjects(subjects)
+
+        total_credit = sum(s["credit"] for s in valid)
+        if total_credit == 0:
+            return 0.0
+
+        weighted_sum = sum(s["score"] * s["credit"] for s in valid)
+        return round(weighted_sum / total_credit, 2)
+
+    @staticmethod
+    def calculate_avg(subjects: list[dict]) -> float:
+        valid = AnalyticsService._valid_subjects(subjects)
+        if not valid:
+            return 0.0
+        return round(mean(s["score"] for s in valid), 2)
+
+    @staticmethod
+    def count_failed(subjects: list[dict]) -> int:
+        return len(AnalyticsService.list_failed_courses(subjects))
+
+    # =========================
+    # KPI
+    # =========================
+    @staticmethod
+    def calculate_completed_credits(subjects: list[dict]) -> int:
+        valid = AnalyticsService._valid_subjects(subjects)
+        return sum(s["credit"] for s in valid)
+
+    @staticmethod
+    def calculate_ab_rate(subjects: list[dict]) -> float:
+        grade_subjects = AnalyticsService._grade_subjects(subjects)
+        if not grade_subjects:
+            return 0.0
+
+        ab_count = sum(1 for s in grade_subjects if s["grade"] in {"A", "B"})
+        return round((ab_count * 100) / len(grade_subjects), 2)
+
+
+    @staticmethod
+    def calculate_fail_rate(subjects: list[dict]) -> float:
+        valid = AnalyticsService._valid_subjects(subjects)
+        if not valid:
+            return 0.0
+
+        fail_count = sum(1 for s in valid if s["score"] < 5)
+        return round((fail_count * 100) / len(valid), 2)
+
+    @staticmethod
+    def calculate_cd_rate(subjects: list[dict]) -> float:
+        grade_subjects = AnalyticsService._grade_subjects(subjects)
+        if not grade_subjects:
+            return 0.0
+
+        cd_count = sum(1 for s in grade_subjects if s["grade"] in {"C", "D"})
+        return round((cd_count * 100) / len(grade_subjects), 2)
+
+    # =========================
+    # RISK
+    # =========================
+    @staticmethod
+    def risk_level_by_gpa(gpa: float, failed: int) -> str:
+        if gpa < 5 or failed >= 5:
+            return "HIGH"
+        if gpa < 6.5 or failed >= 2:
+            return "MEDIUM"
+        return "LOW"
+
+    # =========================
+    # TREND
+    # =========================
+    @staticmethod
+    def trend_by_semester(scores_by_semester: dict[str, list[float]]) -> dict:
+        if len(scores_by_semester) < 2:
+            return {
+                "trend": "Không đủ dữ liệu",
+                "delta": 0.0,
+                "weak_phase": "N/A",
+                "improve_phase": "N/A",
+            }
+
+        semesters = sorted(scores_by_semester.keys())
+
+        first_avg = mean(scores_by_semester[semesters[0]])
+        last_avg = mean(scores_by_semester[semesters[-1]])
+
+        delta = round(last_avg - first_avg, 2)
+
+        trend = "Tăng mạnh" if delta > 1 else "Ổn định"
+
+        return {
+            "trend": trend,
+            "delta": delta,
+            "weak_phase": _format_semester_label(semesters[0]),
+            "improve_phase": _format_semester_label(semesters[-1]),
+        }
+
+    # =========================
+    # FINAL RISK
+    # =========================
+    @staticmethod
+    def risk_level(course_results: list[CourseResult], activities: list[LearningActivity]) -> str:
+        subjects = AnalyticsService.to_subjects(course_results)
+
+        gpa = AnalyticsService.calculate_gpa(subjects)
+        failed = AnalyticsService.count_failed(subjects)
+
+        base = AnalyticsService.risk_level_by_gpa(gpa, failed)
+
+        return base
+
+    # =========================
+    # RECOMMENDATIONS
+    # =========================
+    @staticmethod
+    def recommendations(risk_level: str, failed_courses: list[str]) -> list[str]:
+        failed_text = ", ".join(failed_courses) if failed_courses else "Không có môn dưới 5"
+
+        return [
+            f"Tuần 1–2: Ôn lại môn yếu ({failed_text})",
+            "Tuần 3–4: Làm đề + luyện bài tập",
+            "Hằng ngày: Học ≥ 2h",
+            "Hằng ngày: Review lại bài cũ",
+        ]

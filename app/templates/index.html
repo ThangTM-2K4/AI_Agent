@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Agent - Phân Tích Kết Quả Học Tập</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #fefdfb;
+            --bg-secondary: #faf8f3;
+            --bg-tertiary: #f5f3ed;
+            --text-primary: #2d2416;
+            --text-secondary: #6b6259;
+            --text-tertiary: #9d9389;
+            --border: #e8e4db;
+            --accent: #8b5a3c;
+            --accent-light: #d4c5b9;
+            --accent-pale: #f5eee6;
+            --radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        main {
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 56px 24px;
+        }
+
+        .panel {
+            background: var(--bg-primary);
+            border-radius: var(--radius);
+            padding: 44px;
+            margin-bottom: 28px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 12px rgba(45, 36, 22, 0.06), 0 4px 24px rgba(45, 36, 22, 0.03);
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
+        }
+
+        .panel:hover {
+            box-shadow: 0 8px 24px rgba(45, 36, 22, 0.12), 0 12px 36px rgba(45, 36, 22, 0.06);
+            transform: translateY(-2px);
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 52px;
+            padding: 56px 44px;
+            background: var(--bg-primary);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 12px rgba(45, 36, 22, 0.06), 0 4px 24px rgba(45, 36, 22, 0.03);
+        }
+
+        .hero h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.25;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .hero p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            line-height: 1.85;
+            max-width: 680px;
+            margin: 0 auto;
+            font-weight: 400;
+        }
+
+        .form-panel {
+            padding: 44px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+
+        @media (min-width: 640px) {
+            .grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        label {
+            display: flex;
+            flex-direction: column;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 14px;
+        }
+
+        label span {
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--accent);
+        }
+
+        input[type="text"],
+        input[type="file"] {
+            padding: 15px 18px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            color: var(--text-primary);
+            background: var(--bg-primary);
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:hover,
+        input[type="file"]:hover {
+            border-color: var(--accent-light);
+            background: var(--accent-pale);
+        }
+
+        input[type="text"]:focus,
+        input[type="file"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-pale), 0 0 0 1px var(--accent);
+            background: var(--bg-primary);
+        }
+
+        input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--accent) 0%, #6b4423 100%);
+            color: #fefdfb;
+            border: none;
+            padding: 16px 36px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            box-shadow: 0 4px 16px rgba(139, 90, 60, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(139, 90, 60, 0.35);
+            background: linear-gradient(135deg, #9d6547 0%, #754528 100%);
+        }
+
+        button:active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(139, 90, 60, 0.2);
+        }
+
+        .hint {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 12px;
+            font-weight: 500;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .result {
+            animation: slideInUp 0.5s cubic-bezier(0.23, 1, 0.320, 1);
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result > * {
+            animation: fadeInStagger 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeInStagger {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result h2 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 32px;
+            line-height: 1.3;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .result h3 {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 36px;
+            margin-bottom: 18px;
+            color: var(--accent);
+        }
+
+        .result > h3:first-child {
+            margin-top: 0;
+        }
+
+        .result p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 14px;
+            line-height: 1.8;
+            font-weight: 400;
+        }
+
+        .result strong {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        .result ul {
+            list-style: none;
+            padding: 0;
+            margin: 18px 0;
+        }
+
+        .result li {
+            padding: 14px 0 14px 28px;
+            position: relative;
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            font-weight: 400;
+        }
+
+        .result li:before {
+            content: "•";
+            position: absolute;
+            left: 8px;
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .result article {
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.9;
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .result .loading,
+        .result .error {
+            padding: 20px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .result .loading {
+            background: linear-gradient(135deg, var(--accent-pale) 0%, #f0ead8 100%);
+            color: var(--accent);
+            border-color: var(--accent-light);
+            font-weight: 500;
+        }
+
+        .result .error {
+            background: linear-gradient(135deg, #fce8e6 0%, #fbdcd9 100%);
+            color: #a53c38;
+            border-color: #f4a79f;
+            font-weight: 500;
+        }
+
+        .risk {
+            display: inline-block;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            background: var(--accent-pale);
+            color: var(--accent);
+            border: 1px solid var(--accent-light);
+        }
+
+        .ai-report {
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--accent-pale) 100%);
+            border-left: 5px solid var(--accent);
+            padding: 24px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            line-height: 1.9;
+            color: var(--text-secondary);
+            margin-top: 20px;
+            max-height: 480px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            box-shadow: inset 0 1px 3px rgba(45, 36, 22, 0.04);
+            font-weight: 400;
+        }
+
+        @media (max-width: 640px) {
+            main {
+                padding: 40px 18px;
+            }
+
+            .panel,
+            .form-panel {
+                padding: 32px 24px;
+            }
+
+            .hero {
+                padding: 44px 28px;
+            }
+
+            .hero h1 {
+                font-size: 32px;
+                letter-spacing: -0.3px;
+            }
+
+            .hero p {
+                font-size: 15px;
+            }
+
+            .result h2 {
+                font-size: 26px;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <section class="panel hero">
+            <h1>AI Agent Phân Tích Kết Quả Học Tập</h1>
+            <p>
+                Nhập mã số sinh viên hoặc họ tên để hệ thống đánh giá xu hướng học tập,
+                phát hiện nguy cơ rớt môn và gợi ý kế hoạch cải thiện.
+            </p>
+        </section>
+        
+        <section class="panel form-panel">
+            <form id="import-form">
+                <div class="grid">
+                    <label>
+                        Nhập dữ liệu từ Excel
+                        <input type="file" id="excel_file" name="excel_file" accept=".xlsx,.xlsm" />
+                    </label>
+                </div>
+                <button type="submit">Tải Dữ Liệu Lên</button>
+                <p class="hint">File cần có sheet Students, Course_Results và Learning_Activities.</p>
+            </form>
+        </section>
+
+        <section class="panel form-panel">
+            <form id="report-form">
+                <div class="grid">
+                    <label>
+                        Mã số sinh viên
+                        <input type="text" id="student_code" name="student_code" placeholder="Ví dụ: SV2026123" />
+                    </label>
+                    <label>
+                        Họ tên sinh viên
+                        <input type="text" id="full_name" name="full_name" placeholder="Ví dụ: Nguyễn Văn A" />
+                    </label>
+                </div>
+                <button type="submit">Tạo Báo Cáo AI</button>
+            </form>
+        </section>
+
+        <section id="result" class="panel result hidden"></section>
+    </main>
+
+    <script>
+        const form = document.getElementById('report-form');
+        const importForm = document.getElementById('import-form');
+        const resultBox = document.getElementById('result');
+
+        async function safeParseResponse(res) {
+            const raw = await res.text();
+            try {
+                return { data: JSON.parse(raw), raw };
+            } catch {
+                return { data: null, raw };
+            }
+        }
+
+        function renderRecommendations(items) {
+            return items.map((x) => `<li>${x}</li>`).join('');
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            resultBox.classList.remove('hidden');
+            resultBox.innerHTML = '<p class="loading">Đang phân tích và tạo báo cáo từ AI...</p>';
+
+            const payload = {
+                student_code: document.getElementById('student_code').value.trim() || null,
+                full_name: document.getElementById('full_name').value.trim() || null,
+            };
+
+            try {
+                const res = await fetch('/api/v1/report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                const parsed = await safeParseResponse(res);
+                const data = parsed.data;
+                if (!res.ok) {
+                    throw new Error((data && data.detail) || parsed.raw || 'Có lỗi xảy ra');
+                }
+
+                // Parse summary để lấy các giá trị
+                const parts = data.summary.split(',').map(p => p.trim());
+                const gpa = parts[0].replace('GPA:', '').trim();
+                const avg = parts[1].replace('Avg:', '').trim();
+                const failed = parts[2].replace('Môn dưới 5:', '').trim();
+                const unfinishedCount = parts[3].replace('Số môn chưa hoàn thành:', '').trim();
+                const credits = parts[4].replace('Tín chỉ:', '').trim();
+                const gpaDisplay = data.gpa_display || `GPA: ${gpa}`;
+
+                resultBox.innerHTML = `
+                    <h2>Kết quả phân tích: ${data.full_name} (${data.student_code})</h2>
+                    <h3>Tổng quan</h3>
+                    <p><strong>Trạng thái:</strong> ${data.status || 'Đang học'}</p>
+                    <p><strong>GPA:</strong> ${gpaDisplay}</p>
+                    <p><strong>Trung bình điểm:</strong> ${avg}</p>
+                    <p><strong>Môn dưới 5:</strong> ${failed}</p>
+                    <p><strong>Số môn chưa hoàn thành:</strong> ${unfinishedCount || data.total_failed_subjects || 0}</p>
+                    <p><strong>Tín chỉ:</strong> ${credits}</p>
+                    <p><strong>Mức độ rủi ro:</strong> <span class="risk ${data.risk_level.toLowerCase()}">${data.risk_level}</span></p>
+                    <h3>Danh sách môn</h3>
+                    <p><strong>Danh sách môn dưới 5:</strong> ${data.failed_courses && data.failed_courses.length ? data.failed_courses.join(', ') : 'Không có'}</p>
+                    <h3>KPI</h3>
+                    <p><strong>% môn A/B:</strong> ${data.ab_rate}%</p>
+                    <p><strong>% môn C/D:</strong> ${data.cd_rate}%</p>
+                    <h3>Phân tích</h3>
+                    <p><strong>Xu hướng:</strong> ${data.trend} (${data.delta >= 0 ? '+' : ''}${data.delta})</p>
+                    <p><strong>Giai đoạn yếu:</strong> ${data.weak_phase}</p>
+                    <p><strong>Giai đoạn cải thiện:</strong> ${data.improve_phase}</p>
+                    <p><strong>Nhận định:</strong> ${data.insight}</p>
+                    <h3>Gợi ý cải thiện</h3>
+                    <ul>${renderRecommendations(data.recommendations)}</ul>
+                    <h3>Báo cáo AI chi tiết</h3>
+                    <article class="ai-report">${data.ai_report.replace(/\n/g, '<br/>')}</article>
+                `;
+            } catch (err) {
+                resultBox.innerHTML = `<p class="error">${err.message}</p>`;
+            }
+        });
+
+        importForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('excel_file');
+
+            if (!fileInput.files.length) {
+                resultBox.classList.remove('hidden');
+                resultBox.innerHTML = '<p class="error">Vui lòng chọn file Excel trước khi tải lên.</p>';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            resultBox.classList.remove('hidden');
+            resultBox.innerHTML = '<p class="loading">Đang nhập dữ liệu từ Excel...</p>';
+
+            try {
+                const res = await fetch('/api/v1/import-excel', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const parsed = await safeParseResponse(res);
+                const data = parsed.data;
+                if (!res.ok) {
+                    throw new Error((data && data.detail) || parsed.raw || 'Nhập dữ liệu thất bại');
+                }
+
+                resultBox.innerHTML = `
+                    <h2>Nhập Excel thành công</h2>
+                    <p><strong>Sinh viên đã cập nhật:</strong> ${data.students_upserted}</p>
+                    <p><strong>Điểm học phần đã tải:</strong> ${data.course_results_imported}</p>
+                    <p><strong>Hoạt động học tập đã tải:</strong> ${data.learning_activities_imported}</p>
+                    <p>${data.message}</p>
+                `;
+            } catch (err) {
+                resultBox.innerHTML = `<p class="error">${err.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

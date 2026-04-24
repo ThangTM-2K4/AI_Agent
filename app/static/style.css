@@ -1,0 +1,114 @@
+:root {
+    --bg-a: #f3f7ff;
+    --bg-b: #fff8ea;
+    --panel: rgba(255, 255, 255, 0.9);
+    --line: #d9e0ef;
+    --ink: #0f1f3a;
+    --muted: #4c5f83;
+    --accent: #0059ff;
+    --danger: #d7263d;
+    --warn: #c77900;
+    --ok: #008f5d;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", "Tahoma", sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at 10% 15%, #d9e7ff 0%, transparent 30%),
+        radial-gradient(circle at 85% 5%, #ffe2b3 0%, transparent 35%),
+        linear-gradient(135deg, var(--bg-a), var(--bg-b));
+}
+
+.page {
+    width: min(980px, calc(100% - 2rem));
+    margin: 2rem auto;
+    display: grid;
+    gap: 1rem;
+}
+
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 1.2rem;
+    box-shadow: 0 14px 28px rgba(31, 65, 138, 0.08);
+    backdrop-filter: blur(5px);
+}
+
+.hero h1 {
+    margin: 0;
+    font-size: clamp(1.4rem, 2vw, 2rem);
+}
+
+.hero p {
+    margin: 0.65rem 0 0;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.grid {
+    display: grid;
+    gap: 0.9rem;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+label {
+    display: grid;
+    gap: 0.4rem;
+    font-size: 0.95rem;
+}
+
+input {
+    border: 1px solid #bcc8df;
+    border-radius: 10px;
+    padding: 0.75rem 0.85rem;
+    font-size: 1rem;
+}
+
+button {
+    margin-top: 1rem;
+    border: none;
+    border-radius: 10px;
+    padding: 0.8rem 1.1rem;
+    background: linear-gradient(135deg, #0065ff, #0096ff);
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(0, 90, 255, 0.25);
+}
+
+.result h2 { margin-top: 0; }
+.result h3 { margin-bottom: 0.4rem; }
+.result ul { margin-top: 0.4rem; }
+
+.hint {
+    margin: 0.75rem 0 0;
+    color: var(--muted);
+    font-size: 0.92rem;
+}
+
+.ai-report {
+    background: #f8fbff;
+    border: 1px dashed #aec3e8;
+    border-radius: 10px;
+    padding: 0.85rem;
+    line-height: 1.5;
+}
+
+.risk.high { color: var(--danger); font-weight: 700; }
+.risk.medium { color: var(--warn); font-weight: 700; }
+.risk.low { color: var(--ok); font-weight: 700; }
+
+.loading { color: var(--accent); }
+.error { color: var(--danger); font-weight: 600; }
+.hidden { display: none; }
