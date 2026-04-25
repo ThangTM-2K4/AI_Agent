@@ -5,7 +5,6 @@ from pydantic import BaseModel, Field
 
 class ReportRequest(BaseModel):
     student_code: Optional[str] = Field(default=None, max_length=20)
-    full_name: Optional[str] = Field(default=None, max_length=255)
 
 
 class ReportResponse(BaseModel):
@@ -20,6 +19,7 @@ class ReportResponse(BaseModel):
     summary: str
     risk_level: str
     failed_courses: list[str]
+    retake_courses: list[str]
     unfinished_courses: list[str]
     completed_credits: int
     ab_rate: float

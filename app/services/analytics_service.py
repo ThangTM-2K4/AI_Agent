@@ -371,6 +371,16 @@ class AnalyticsService:
         ]
 
     @staticmethod
+    def list_retake_courses(subjects: list[dict]) -> list[str]:
+        """Trả về danh sách môn phải học lại (grade == F)."""
+        cleaned = AnalyticsService.clean_subjects(subjects)
+        return [
+            s["name"]
+            for s in cleaned
+            if str(s.get("grade") or "").upper() == "F"
+        ]
+
+    @staticmethod
     def count_unfinished_courses(subjects: list[dict]) -> int:
         """Đếm số môn chưa hoàn thành (grade == X)."""
         return len(AnalyticsService.list_unfinished_courses(subjects))

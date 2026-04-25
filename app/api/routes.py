@@ -15,11 +15,11 @@ router = APIRouter(prefix="/api/v1", tags=["report"])
 
 @router.post("/report", response_model=ReportResponse)
 async def build_report(request: ReportRequest, db: Session = Depends(get_db)):
-    if not request.student_code and not request.full_name:
-        raise HTTPException(status_code=400, detail="Vui lòng nhập mã số sinh viên hoặc họ tên.")
+    if not request.student_code:
+        raise HTTPException(status_code=400, detail="Vui lòng nhập mã số sinh viên.")
 
     repo = StudentRepository(db)
-    student = repo.get_student(request.student_code, request.full_name)
+    student = repo.get_student(request.student_code, None)
     if not student:
         raise HTTPException(status_code=404, detail="Không tìm thấy sinh viên.")
 
@@ -42,6 +42,7 @@ async def build_report(request: ReportRequest, db: Session = Depends(get_db)):
     gpa_4 = AnalyticsService.calculate_gpa(normalized_subjects)
     gpa_display = AnalyticsService.format_gpa_display(avg_score, gpa_4)
     failed_courses = AnalyticsService.list_failed_courses(normalized_subjects)
+    retake_courses = AnalyticsService.list_retake_courses(normalized_subjects)
     unfinished_courses = AnalyticsService.list_unfinished_courses(normalized_subjects)
     total_failed_subjects = AnalyticsService.count_unfinished_courses(normalized_subjects)
     fail_count = len(failed_courses)
@@ -64,6 +65,7 @@ async def build_report(request: ReportRequest, db: Session = Depends(get_db)):
         "avg_score": avg_score,
         "gpa_display": gpa_display,
         "failed_courses": failed_courses,
+        "retake_courses": retake_courses,
         "unfinished_courses": unfinished_courses,
         "total_failed_subjects": total_failed_subjects,
         "trend": trend_info["trend"],
@@ -96,6 +98,7 @@ async def build_report(request: ReportRequest, db: Session = Depends(get_db)):
         summary=summary,
         risk_level=risk,
         failed_courses=failed_courses,
+        retake_courses=retake_courses,
         unfinished_courses=unfinished_courses,
         completed_credits=completed_credits,
         ab_rate=ab_rate,

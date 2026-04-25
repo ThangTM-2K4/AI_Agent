@@ -102,6 +102,44 @@
             }
         }
 
+        .report-search-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 14px;
+            align-items: end;
+        }
+
+        .report-search-row label {
+            margin-bottom: 0;
+            gap: 8px;
+        }
+
+        .report-form-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .report-form-note {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .report-search-input {
+            min-height: 52px;
+            font-size: 15px;
+            padding: 14px 16px;
+        }
+
+        .report-submit-btn {
+            margin: 0;
+            white-space: nowrap;
+            min-height: 52px;
+            padding: 0 26px;
+        }
+
         label {
             display: flex;
             flex-direction: column;
@@ -369,6 +407,14 @@
                 width: 100%;
             }
 
+            .report-search-row {
+                grid-template-columns: 1fr;
+            }
+
+            .report-search-row button {
+                width: 100%;
+            }
+
             .grid {
                 grid-template-columns: 1fr;
                 gap: 20px;
@@ -381,7 +427,7 @@
         <section class="panel hero">
             <h1>AI Agent Phân Tích Kết Quả Học Tập</h1>
             <p>
-                Nhập mã số sinh viên hoặc họ tên để hệ thống đánh giá xu hướng học tập,
+                Nhập mã số sinh viên để hệ thống đánh giá xu hướng học tập,
                 phát hiện nguy cơ rớt môn và gợi ý kế hoạch cải thiện.
             </p>
         </section>
@@ -401,17 +447,21 @@
 
         <section class="panel form-panel">
             <form id="report-form">
-                <div class="grid">
+                <h2 class="report-form-title">Tra cứu theo mã số sinh viên</h2>
+                <p class="report-form-note">Nhập đúng MSSV để tạo báo cáo AI nhanh và chính xác.</p>
+                <div class="report-search-row">
                     <label>
                         Mã số sinh viên
-                        <input type="text" id="student_code" name="student_code" placeholder="Ví dụ: SV2026123" />
+                        <input
+                            type="text"
+                            id="student_code"
+                            name="student_code"
+                            class="report-search-input"
+                            placeholder="Ví dụ: SV2026123"
+                        />
                     </label>
-                    <label>
-                        Họ tên sinh viên
-                        <input type="text" id="full_name" name="full_name" placeholder="Ví dụ: Nguyễn Văn A" />
-                    </label>
+                    <button type="submit" class="report-submit-btn">Tạo Báo Cáo AI</button>
                 </div>
-                <button type="submit">Tạo Báo Cáo AI</button>
             </form>
         </section>
 
@@ -443,7 +493,6 @@
 
             const payload = {
                 student_code: document.getElementById('student_code').value.trim() || null,
-                full_name: document.getElementById('full_name').value.trim() || null,
             };
 
             try {
@@ -474,12 +523,14 @@
                     <p><strong>Trạng thái:</strong> ${data.status || 'Đang học'}</p>
                     <p><strong>GPA:</strong> ${gpaDisplay}</p>
                     <p><strong>Trung bình điểm:</strong> ${avg}</p>
-                    <p><strong>Môn dưới 5:</strong> ${failed}</p>
+                    <p><strong>Môn cần cải thiện:</strong> ${failed}</p>
+                    <p><strong>Các môn học lại:</strong> ${data.retake_courses && data.retake_courses.length ? data.retake_courses.join(', ') : 'Không có'}</p>
                     <p><strong>Số môn chưa hoàn thành:</strong> ${unfinishedCount || data.total_failed_subjects || 0}</p>
                     <p><strong>Tín chỉ:</strong> ${credits}</p>
                     <p><strong>Mức độ rủi ro:</strong> <span class="risk ${data.risk_level.toLowerCase()}">${data.risk_level}</span></p>
                     <h3>Danh sách môn</h3>
-                    <p><strong>Danh sách môn dưới 5:</strong> ${data.failed_courses && data.failed_courses.length ? data.failed_courses.join(', ') : 'Không có'}</p>
+                    <p><strong>Danh sách môn cần cải thiện:</strong> ${data.failed_courses && data.failed_courses.length ? data.failed_courses.join(', ') : 'Không có'}</p>
+                    <p><strong>Danh sách môn học lại:</strong> ${data.retake_courses && data.retake_courses.length ? data.retake_courses.join(', ') : 'Không có'}</p>
                     <h3>KPI</h3>
                     <p><strong>% môn A/B:</strong> ${data.ab_rate}%</p>
                     <p><strong>% môn C/D:</strong> ${data.cd_rate}%</p>
