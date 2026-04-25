@@ -1,8 +1,12 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from typing import Optional
+
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import re
 
 from app.core.database import get_db
+from app.core.config import settings
 from app.repositories.student_repository import StudentRepository
 from app.schemas.import_result import ImportResult
 from app.schemas.report import ReportRequest, ReportResponse
@@ -11,15 +15,35 @@ from app.services.ai_report_service import AIReportService
 from app.services.analytics_service import AnalyticsService
 
 router = APIRouter(prefix="/api/v1", tags=["report"])
+public_router = APIRouter(tags=["auth"])
 
 
-@router.post("/report", response_model=ReportResponse)
-async def build_report(request: ReportRequest, db: Session = Depends(get_db)):
-    if not request.student_code:
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+def _is_data_loaded(request: Request) -> bool:
+    return bool(getattr(request.app.state, "data_loaded", False))
+
+
+def _get_current_user(request: Request) -> Optional[dict]:
+    return request.session.get("user")
+
+
+def _require_teacher(request: Request) -> dict:
+    user = _get_current_user(request)
+    if not user or user.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="Chỉ giáo viên mới có quyền thực hiện chức năng này.")
+    return user
+
+
+async def _build_report(student_code: Optional[str], db: Session) -> ReportResponse:
+    if not student_code:
         raise HTTPException(status_code=400, detail="Vui lòng nhập mã số sinh viên.")
 
     repo = StudentRepository(db)
-    student = repo.get_student(request.student_code, None)
+    student = repo.get_student(student_code, None)
     if not student:
         raise HTTPException(status_code=404, detail="Không tìm thấy sinh viên.")
 
@@ -113,8 +137,18 @@ async def build_report(request: ReportRequest, db: Session = Depends(get_db)):
     )
 
 
+@router.post("/report", response_model=ReportResponse)
+async def build_report(request: ReportRequest, req: Request, db: Session = Depends(get_db)):
+    if not _is_data_loaded(req):
+        raise HTTPException(status_code=400, detail="Hệ thống chưa có dữ liệu. Vui lòng đợi giáo viên tải lên.")
+    return await _build_report(request.student_code, db)
+
+
 @router.post("/import-excel", response_model=ImportResult)
-async def import_excel(file: UploadFile = File(...), db: Session = Depends(get_db)):
+@public_router.post("/upload", response_model=ImportResult)
+async def import_excel(req: Request, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    _require_teacher(req)
+
     filename = (file.filename or "").lower()
     if not filename.endswith((".xlsx", ".xlsm")):
         raise HTTPException(status_code=400, detail="Chỉ hỗ trợ file Excel .xlsx hoặc .xlsm.")
@@ -126,6 +160,7 @@ async def import_excel(file: UploadFile = File(...), db: Session = Depends(get_d
     try:
         service = ExcelImportService(db)
         result = service.import_workbook(file_bytes)
+        req.app.state.data_loaded = True
         return ImportResult(**result)
     except ValueError as exc:
         db.rollback()
@@ -136,3 +171,47 @@ async def import_excel(file: UploadFile = File(...), db: Session = Depends(get_d
         traceback.print_exc()
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Lỗi: {exc}") from exc
+
+
+@public_router.post("/login")
+async def login(payload: LoginRequest, request: Request):
+    email = payload.username.strip().lower()
+    display_name = settings.teacher_accounts.get(email)
+    if not display_name or payload.password != settings.teacher_default_password:
+        raise HTTPException(status_code=401, detail="login failed")
+
+    request.session["user"] = {
+        "username": email,
+        "display_name": display_name,
+        "role": "teacher",
+        "avatar": settings.teacher_avatar,
+    }
+    return {
+        "authenticated": True,
+        "role": "teacher",
+        "display_name": display_name,
+        "avatar": settings.teacher_avatar,
+    }
+
+
+@public_router.post("/logout")
+async def logout(request: Request):
+    request.session.pop("user", None)
+    return {"authenticated": False}
+
+
+@public_router.get("/search", response_model=ReportResponse)
+async def search_report(mssv: str, request: Request, db: Session = Depends(get_db)):
+    if not _is_data_loaded(request):
+        raise HTTPException(status_code=400, detail="Hệ thống chưa có dữ liệu. Vui lòng đợi giáo viên tải lên.")
+    return await _build_report(mssv, db)
+
+
+@public_router.get("/state")
+async def system_state(request: Request):
+    user = _get_current_user(request)
+    return {
+        "data_loaded": _is_data_loaded(request),
+        "authenticated": bool(user),
+        "user": user,
+    }

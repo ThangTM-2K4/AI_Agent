@@ -85,6 +85,84 @@
             font-weight: 400;
         }
 
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding: 22px 28px;
+        }
+
+        .topbar-title {
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .topbar-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .topbar-btn {
+            margin: 0;
+            min-height: 40px;
+            padding: 10px 16px;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        .logout-btn {
+            background: linear-gradient(135deg, #6b6259 0%, #3f382f 100%);
+            box-shadow: 0 3px 10px rgba(63, 56, 47, 0.2);
+        }
+
+        .teacher-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .data-badge {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid #e3bdbb;
+            background: #fdeceb;
+            color: #9a3a35;
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .data-badge.loaded {
+            border-color: #b9d9c8;
+            background: #eaf8f0;
+            color: #1e6a43;
+        }
+
+        .data-message {
+            margin-bottom: 14px;
+            font-size: 13px;
+            border: 1px solid #e3bdbb;
+            background: #fdeceb;
+            color: #9a3a35;
+            padding: 10px 12px;
+            border-radius: 10px;
+        }
+
         .form-panel {
             padding: 44px;
         }
@@ -158,6 +236,7 @@
         }
 
         input[type="text"],
+        input[type="password"],
         input[type="file"] {
             padding: 15px 18px;
             border: 1.5px solid var(--border);
@@ -170,12 +249,14 @@
         }
 
         input[type="text"]:hover,
+        input[type="password"]:hover,
         input[type="file"]:hover {
             border-color: var(--accent-light);
             background: var(--accent-pale);
         }
 
         input[type="text"]:focus,
+        input[type="password"]:focus,
         input[type="file"]:focus {
             outline: none;
             border-color: var(--accent);
@@ -212,6 +293,14 @@
         button:active {
             transform: translateY(-1px);
             box-shadow: 0 4px 16px rgba(139, 90, 60, 0.2);
+        }
+
+        button:disabled,
+        input:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
         .hint {
@@ -395,6 +484,16 @@
                 letter-spacing: -0.3px;
             }
 
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .topbar-right {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
             .hero p {
                 font-size: 15px;
             }
@@ -424,6 +523,39 @@
 </head>
 <body>
     <main class="page">
+        <section class="panel topbar">
+            <div class="topbar-left">
+                <h2 class="topbar-title">AI Agent Web</h2>
+                <p class="topbar-subtitle">Phân tích kết quả học tập</p>
+            </div>
+            <div class="topbar-right">
+                <span id="data-status-badge" class="data-badge">❌ No data</span>
+                <button id="login-btn" type="button" class="topbar-btn">Login (Teacher)</button>
+                <div id="teacher-box" class="teacher-box hidden">
+                    <span id="teacher-label"></span>
+                    <button id="logout-btn" type="button" class="topbar-btn logout-btn">Logout</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="login-panel" class="panel form-panel hidden">
+            <form id="login-form">
+                <h2 class="report-form-title">Đăng nhập giáo viên</h2>
+                <p class="report-form-note">Đăng nhập bằng email giáo viên. Mật khẩu mặc định: 123456.</p>
+                <div class="grid">
+                    <label>
+                        Email
+                        <input type="text" id="login-username" name="username" placeholder="ntnhu@ttn.edu.vn" required />
+                    </label>
+                    <label>
+                        Password
+                        <input type="password" id="login-password" name="password" placeholder="Nhập mật khẩu" required />
+                    </label>
+                </div>
+                <button type="submit">Đăng Nhập</button>
+            </form>
+        </section>
+
         <section class="panel hero">
             <h1>AI Agent Phân Tích Kết Quả Học Tập</h1>
             <p>
@@ -432,7 +564,7 @@
             </p>
         </section>
         
-        <section class="panel form-panel">
+        <section id="upload-section" class="panel form-panel hidden">
             <form id="import-form">
                 <div class="grid">
                     <label>
@@ -449,6 +581,7 @@
             <form id="report-form">
                 <h2 class="report-form-title">Tra cứu theo mã số sinh viên</h2>
                 <p class="report-form-note">Nhập đúng MSSV để tạo báo cáo AI nhanh và chính xác.</p>
+                <p id="data-message" class="data-message hidden">Hệ thống chưa có dữ liệu. Vui lòng đợi giáo viên tải lên.</p>
                 <div class="report-search-row">
                     <label>
                         Mã số sinh viên
@@ -468,10 +601,82 @@
         <section id="result" class="panel result hidden"></section>
     </main>
 
+    <script id="server-state" type="application/json">{{ {'data_loaded': data_loaded, 'user': user}|tojson }}</script>
     <script>
         const form = document.getElementById('report-form');
         const importForm = document.getElementById('import-form');
+        const loginForm = document.getElementById('login-form');
+        const loginPanel = document.getElementById('login-panel');
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const teacherBox = document.getElementById('teacher-box');
+        const teacherLabel = document.getElementById('teacher-label');
+        const uploadSection = document.getElementById('upload-section');
+        const dataStatusBadge = document.getElementById('data-status-badge');
+        const dataMessage = document.getElementById('data-message');
+        const studentCodeInput = document.getElementById('student_code');
+        const reportSubmitBtn = form.querySelector('button[type="submit"]');
         const resultBox = document.getElementById('result');
+
+        const serverStateElement = document.getElementById('server-state');
+        let parsedServerState = {};
+        try {
+            parsedServerState = JSON.parse(serverStateElement ? serverStateElement.textContent : '{}');
+        } catch {
+            parsedServerState = {};
+        }
+
+        const appState = {
+            data_loaded: Boolean(parsedServerState.data_loaded),
+            user: parsedServerState.user || null,
+        };
+
+        function showResultMessage(message, isError = false) {
+            resultBox.classList.remove('hidden');
+            resultBox.innerHTML = `<p class="${isError ? 'error' : 'loading'}">${message}</p>`;
+        }
+
+        function applyStateToUI() {
+            const isTeacher = Boolean(appState.user && appState.user.role === 'teacher');
+
+            uploadSection.classList.toggle('hidden', !isTeacher);
+            loginBtn.classList.toggle('hidden', isTeacher);
+            teacherBox.classList.toggle('hidden', !isTeacher);
+
+            if (isTeacher) {
+                const avatar = appState.user.avatar || '👤';
+                const name = appState.user.display_name || appState.user.username || 'Giáo viên';
+                teacherLabel.textContent = `${avatar} ${name}`;
+                loginPanel.classList.add('hidden');
+            }
+
+            studentCodeInput.disabled = !appState.data_loaded;
+            reportSubmitBtn.disabled = !appState.data_loaded;
+            dataMessage.classList.toggle('hidden', appState.data_loaded);
+
+            if (appState.data_loaded) {
+                dataStatusBadge.textContent = '✅ Data loaded';
+                dataStatusBadge.classList.add('loaded');
+            } else {
+                dataStatusBadge.textContent = '❌ No data';
+                dataStatusBadge.classList.remove('loaded');
+            }
+        }
+
+        async function refreshState() {
+            try {
+                const res = await fetch('/state');
+                const parsed = await safeParseResponse(res);
+                if (!res.ok || !parsed.data) {
+                    return;
+                }
+                appState.data_loaded = Boolean(parsed.data.data_loaded);
+                appState.user = parsed.data.user || null;
+                applyStateToUI();
+            } catch {
+                applyStateToUI();
+            }
+        }
 
         async function safeParseResponse(res) {
             const raw = await res.text();
@@ -488,19 +693,17 @@
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            resultBox.classList.remove('hidden');
-            resultBox.innerHTML = '<p class="loading">Đang phân tích và tạo báo cáo từ AI...</p>';
+            if (!appState.data_loaded) {
+                showResultMessage('Hệ thống chưa có dữ liệu. Vui lòng đợi giáo viên tải lên.', true);
+                return;
+            }
 
-            const payload = {
-                student_code: document.getElementById('student_code').value.trim() || null,
-            };
+            showResultMessage('Đang phân tích và tạo báo cáo từ AI...');
+
+            const studentCode = studentCodeInput.value.trim();
 
             try {
-                const res = await fetch('/api/v1/report', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
+                const res = await fetch(`/search?mssv=${encodeURIComponent(studentCode)}`);
 
                 const parsed = await safeParseResponse(res);
                 const data = parsed.data;
@@ -554,19 +757,17 @@
             const fileInput = document.getElementById('excel_file');
 
             if (!fileInput.files.length) {
-                resultBox.classList.remove('hidden');
-                resultBox.innerHTML = '<p class="error">Vui lòng chọn file Excel trước khi tải lên.</p>';
+                showResultMessage('Vui lòng chọn file Excel trước khi tải lên.', true);
                 return;
             }
 
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
 
-            resultBox.classList.remove('hidden');
-            resultBox.innerHTML = '<p class="loading">Đang nhập dữ liệu từ Excel...</p>';
+            showResultMessage('Đang nhập dữ liệu từ Excel...');
 
             try {
-                const res = await fetch('/api/v1/import-excel', {
+                const res = await fetch('/upload', {
                     method: 'POST',
                     body: formData,
                 });
@@ -584,10 +785,58 @@
                     <p><strong>Hoạt động học tập đã tải:</strong> ${data.learning_activities_imported}</p>
                     <p>${data.message}</p>
                 `;
+                appState.data_loaded = true;
+                applyStateToUI();
             } catch (err) {
                 resultBox.innerHTML = `<p class="error">${err.message}</p>`;
             }
         });
+
+        loginBtn.addEventListener('click', () => {
+            loginPanel.classList.toggle('hidden');
+        });
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                username: document.getElementById('login-username').value.trim(),
+                password: document.getElementById('login-password').value.trim(),
+            };
+
+            try {
+                const res = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const parsed = await safeParseResponse(res);
+                if (!res.ok) {
+                    throw new Error((parsed.data && parsed.data.detail) || parsed.raw || 'Đăng nhập thất bại');
+                }
+                appState.user = {
+                    role: parsed.data.role,
+                    display_name: parsed.data.display_name,
+                    avatar: parsed.data.avatar,
+                    username: payload.username,
+                };
+                applyStateToUI();
+                showResultMessage('Đăng nhập thành công. Bạn có thể tải dữ liệu Excel.', false);
+            } catch (err) {
+                showResultMessage(err.message, true);
+            }
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await fetch('/logout', { method: 'POST' });
+            } finally {
+                appState.user = null;
+                applyStateToUI();
+            }
+        });
+
+        applyStateToUI();
+        refreshState();
     </script>
 </body>
 </html>
